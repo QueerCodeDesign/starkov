@@ -242,3 +242,13 @@
 .defeated-subtitle {
     font-size: 1.5rem;
 }
+
+.wreckage-wrapper {
+    text-align: center;
+}
+
+.wreckage-title {
+    margin: .25rem 0;
+    font-size: 1rem;
+    font-weight: bold;
+}

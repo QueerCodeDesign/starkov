@@ -3,6 +3,7 @@ import { Stage, Container, Graphics } from '@pixi/react';
 import "@pixi/events";
 import { StarLayer, generateStars } from './components/StarField';
 import { Ship } from './components/Ship';
+import { Debris } from './components/Debris';
 import { HUD } from './components/HUD';
 import { TargetHUD } from './components/TargetHUD';
 import './assets/game.css';
@@ -12,6 +13,7 @@ import { ParticleExplosion } from './components/ParticleExplosion';
 const Game = ({ socket }) => {
   const [playersPosition, setPlayersPosition] = useState(new Map());
   const [playersShields, setPlayersShields] = useState(new Map());
+  const [debrisField, setDebrisField] = useState(new Map());
   const [localPlayerId, setLocalPlayerId] = useState();
   const [targetedPlayers, setTargetedPlayers] = useState(new Map());
   const [localTarget, setLocalTarget] = useState(null);
@@ -45,9 +47,9 @@ const Game = ({ socket }) => {
 
   // Generate Star Layers
   const [starLayers] = useState(() => [
-    generateStars(200, worldBounds),
-    generateStars(150, worldBounds),
-    generateStars(100, worldBounds)
+    generateStars(800, worldBounds),
+    generateStars(600, worldBounds),
+    generateStars(400, worldBounds)
   ]);
 
   // Initialize Required References
@@ -62,6 +64,7 @@ const Game = ({ socket }) => {
   const attackCooldownRef = useRef(attackCooldown);
   const powerLevelsRef = useRef(powerLevels);
   const isDestroyedRef = useRef(isDestroyed);
+  const debrisFieldRef = useRef(debrisField);
   
   // Create required reference updates
   useEffect(() => {
@@ -82,15 +85,19 @@ const Game = ({ socket }) => {
 
   useEffect(() => {
     powerLevelsRef.current = powerLevels;
-  }, [powerLevels])
+  }, [powerLevels]);
 
   useEffect(() => {
     playersShieldsRef.current = playersShields;
-  }, [playersShields])
+  }, [playersShields]);
 
   useEffect(() => {
     isDestroyedRef.current = isDestroyed;
-  }, [isDestroyed])
+  }, [isDestroyed]);
+
+  useEffect(() => {
+    debrisFieldRef.current = debrisField;
+  }, [debrisField]);
 
   /*
   / Socket connection and calls
@@ -301,21 +308,36 @@ const Game = ({ socket }) => {
           x: data.finalPosition.x,
           y: data.finalPosition.y,
         });
+
         return updated;
-      })
+      });
+      
+      setDebrisField(prev => {
+        const updated = new Map(prev);
+        updated.set(data.playerId, {
+          id: data.playerId,
+          name: `Wreck of the ${data.playerName}`,
+          type: 'wreckage',
+          x: data.finalPosition.x,
+          y: data.finalPosition.y,
+          rotation: data.finalPosition.rotation
+        });
+
+        return updated;
+      });
 
       if (data.playerId === localPlayerIdRef.current) {
         setIsDestroyed(true);
+        setLocalTarget(null);
+      } else if (data.playerId === localTargetRef.current) {
+        setLocalTarget(null);
       }
 
       setPlayersPosition(prev => {
         const updated = new Map(prev);
-        const destroyedPlayer = updated.get(data.playterId);
+        const destroyedPlayer = updated.get(data.playerId);
         if (destroyedPlayer) {
-          updated.set(data.playerId, {
-            ...destroyedPlayer,
-            isDestroyed: true
-          });
+          updated.delete(data.playerId);
         }
 
         return updated;
@@ -327,13 +349,22 @@ const Game = ({ socket }) => {
     };
   }, []);
 
-  const handleTargetClick = (targetId) => {
-    if (targetId !== localPlayerId) {
-      setLocalTarget(targetId);
-      socketRef.current?.emit('targetPlayer', {
-        targeterId: localPlayerId,
-        targetId: targetId
-      });
+  const handleTargetClick = (targetId, type) => {
+    console.log('targetId', targetId);
+    console.log('type', type);
+
+    switch (type) {
+      case 'ship':
+        if (targetId !== localPlayerId) {
+          setLocalTarget(targetId);
+          socketRef.current?.emit('targetPlayer', {
+            targeterId: localPlayerId,
+            targetId: targetId
+          });
+        };
+        break;
+      case 'debris':
+        setLocalTarget(targetId);
     }
   };
   
@@ -824,20 +855,37 @@ const Game = ({ socket }) => {
             <StarLayer stars={starLayers[2]} parallaxFactor={0.8} cameraX={cameraX} cameraY={cameraY} />
             
             <Container x={-cameraX} y={-cameraY}>  
-              {Array.from(playersPosition.values()).map((player) => {
-                console.log('Current players', Array.from(playersPosition.values()));
-                // if (player.isDestroyed) return null;
+              {Array.from(playersPositionRef.current.values()).map((player) => {
 
                 return (
                   <Container
-                    key={player.id}
+                    key={`player-${player.id}`}
                     x={player.x}
                     y={player.y}
                   >
-                    <Ship
-                      id={player.id}
-                      rotation={player.rotation}
-                      isLocal={player.id === localPlayerId}
+                    {!player.isDestroyed && (
+                      <Ship
+                        id={player.id}
+                        rotation={player.rotation}
+                        isLocal={player.id === localPlayerId}
+                        onTargetClick={handleTargetClick}
+                      />
+                    )}
+                  </Container>
+                )}
+              )}
+
+              {Array.from(debrisFieldRef.current.values()).map((debris) => {
+                // console.log('debris', debris);
+                return (
+                  <Container
+                    key={`debris-${debris.id}`}
+                    x={debris.x}
+                    y={debris.y}
+                  >
+                    <Debris
+                      id={debris.id}
+                      rotation={debris.rotation}
                       onTargetClick={handleTargetClick}
                     />
                   </Container>
@@ -908,7 +956,7 @@ const Game = ({ socket }) => {
               />
             </div>
           )}
-          {localTarget && (
+          {localTargetRef.current && playersPositionRef.current.has(localTargetRef.current) ? (
             <div className="HUD-wrapper-right">
               <TargetHUD
                 target={{
@@ -932,7 +980,16 @@ const Game = ({ socket }) => {
                 isInRange={isInRange(playersPosition.get(localPlayerIdRef.current), playersPosition.get(localTargetRef.current), range)}
               />
             </div>
-          )}
+          ) : localTargetRef.current && debrisFieldRef.current.has(localTargetRef.current) ? (
+            <div className="HUD-wrapper-right">
+              <TargetHUD
+                target={{
+                  ...debrisFieldRef.current.get(localTargetRef.current)
+                }}
+                isInRange={isInRange(debrisFieldRef.current.get(localPlayerIdRef.current), debrisFieldRef.current.get(localTargetRef.current), range)}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

@@ -22,7 +22,7 @@ export const damageShield = (shields, angle, amount) => {
 };
 
 // Ship component
-export const Ship = React.memo(({ rotation, isLocal, onTargetClick, id }) => {
+export const Ship = React.memo(({ rotation, onTargetClick, id }) => {
 
   return (
     <Sprite
@@ -35,7 +35,7 @@ export const Ship = React.memo(({ rotation, isLocal, onTargetClick, id }) => {
       interactive={true}
       cursor="pointer"
       pointerdown={() => {
-        onTargetClick(id);
+        onTargetClick(id, 'ship');
       }}
     />
   );

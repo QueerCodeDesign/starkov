@@ -78,7 +78,7 @@ export const HUD = ({ player, attackCooldown, power, subsystemDamage }) => {
   return (
     <div className="local-HUD-wrapper">
       {player && player.shields && (
-        <ShieldIndicator title={'Player Shields'} shields={player.shields} />
+        <ShieldIndicator title={player.name || 'Player Shields'} shields={player.shields} />
       )}
       <AttackIndicator attackCooldown={attackCooldown} />
       <PowerIndicator power={power} subsystemDamage={subsystemDamage} />

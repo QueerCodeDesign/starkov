@@ -21,19 +21,26 @@ const handlePlayerDestruction = (playerId) => {
 
   if (player) {
     // Update the player object in the players Map
-    players.set(playerId, {
-      ... player,
-      isDestroyed: true
-    });
+    players.delete(playerId);
+
+    destroyedPlayers.set(playerId, {
+      wreckage_name: player.name,
+      type: 'wreckage',
+      finalPosition: {
+        x: player.x,
+        y: player.y,
+        rotation: player.rotation
+      }
+    })
 
     // Broadcast destruction event to all clients
     io.emit('playerDestroyed', {
       playerId: playerId,
+      playerName: player.name,
       finalPosition: {
         x: player.x,
         y: player.y,
-        velocityX: player.velocityX,
-        velocityY: player.velocityY
+        rotation: player.rotation
       },
       isDestroyed: true
     });
@@ -65,9 +72,12 @@ io.on('connection', (socket) => {
       if (allReady && lobbyPlayers.size >= 2) {
         
         allPlayers.forEach(player => {
+          console.log(player);
           // Initialize player with random position
           const newPlayer = {
             id: player.id,
+            name: player.name,
+            type: 'player',
             x: Math.random() * 1000,
             y: Math.random() * 1000,
             rotation: 0,
@@ -167,7 +177,6 @@ io.on('connection', (socket) => {
     lobbyPlayers.delete(socket.id);
     players.delete(socket.id);
     shields.delete(socket.id);
-    destroyedPlayers.delete(socket.id);
     io.emit('lobby:players', Array.from(lobbyPlayers.values()));
     io.emit('playerLeft', socket.id);
     io.emit('playerUntargeted', {

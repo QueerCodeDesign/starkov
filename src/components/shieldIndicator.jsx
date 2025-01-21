@@ -1,7 +1,18 @@
 import React from "react";
 
 export const ShieldIndicator = ({ title, shields }) => {
+  // console.log('title', title);
+  // console.log('shields', shields);
   
+  if (shields.type === 'debris') {
+    return (
+      <div className="wreckage-wrapper">
+        <div className="wreckage-title">{title}</div>
+        <div>Debris</div>
+      </div>
+    )
+  }
+
   if (!shields || !shields.segments) {
     return <div>Loading shields...</div>;
   }
