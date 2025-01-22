@@ -47,9 +47,9 @@ const Game = ({ socket }) => {
 
   // Generate Star Layers
   const [starLayers] = useState(() => [
-    generateStars(800, worldBounds),
-    generateStars(600, worldBounds),
-    generateStars(400, worldBounds)
+    generateStars(200, worldBounds),
+    generateStars(150, worldBounds),
+    generateStars(100, worldBounds)
   ]);
 
   // Initialize Required References
@@ -350,8 +350,6 @@ const Game = ({ socket }) => {
   }, []);
 
   const handleTargetClick = (targetId, type) => {
-    console.log('targetId', targetId);
-    console.log('type', type);
 
     switch (type) {
       case 'ship':

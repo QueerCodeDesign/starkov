@@ -72,7 +72,6 @@ io.on('connection', (socket) => {
       if (allReady && lobbyPlayers.size >= 2) {
         
         allPlayers.forEach(player => {
-          console.log(player);
           // Initialize player with random position
           const newPlayer = {
             id: player.id,
