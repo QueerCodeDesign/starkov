@@ -671,6 +671,24 @@ const Game = ({ socket }) => {
     });
   };
 
+  const findShipCoords = (playerId) => {
+    let shipX, shipY = 0;
+    if (playerId) {
+      shipX = playersPosition.get(playerId)?.x || debrisField.get(playerId)?.x
+      shipY = playersPosition.get(playerId)?.y || debrisField.get(playerId)?.y
+    }
+    let coords = {
+      x: shipX,
+      y: shipY
+    }
+
+    return coords;
+  };
+
+  const returnToLobby = (playerId) => {
+    console.log('Back to lobby!');
+  }
+
   /*
   / Key Bindings
   */
@@ -827,8 +845,9 @@ const Game = ({ socket }) => {
   const localPlayer = localPlayerId ? playersPosition.get(localPlayerId) : null;
   const localShields = localPlayerId ? playersShields.get(localPlayerId) : null;
 
-  const cameraX = localPlayer ? localPlayer.x - 400 : 0;
-  const cameraY = localPlayer ? localPlayer.y - 300 : 0;
+  const shipCoordinates = findShipCoords(localPlayerId);
+  const cameraX = shipCoordinates.x - 400;
+  const cameraY = shipCoordinates.y - 300;
 
   return (
     <div className="w-full h-full">
@@ -854,24 +873,26 @@ const Game = ({ socket }) => {
             
             <Container x={-cameraX} y={-cameraY}>  
               {Array.from(playersPositionRef.current.values()).map((player) => {
+                // console.log('player', player);
 
-                return (
-                  <Container
-                    key={`player-${player.id}`}
-                    x={player.x}
-                    y={player.y}
-                  >
-                    {!player.isDestroyed && (
+                if (!player.isDestroyed) {
+
+                  return (
+                    <Container
+                      key={`player-${player.id}`}
+                      x={player.x}
+                      y={player.y}
+                    >
                       <Ship
                         id={player.id}
                         rotation={player.rotation}
                         isLocal={player.id === localPlayerId}
                         onTargetClick={handleTargetClick}
                       />
-                    )}
-                  </Container>
-                )}
-              )}
+                    </Container>
+                  )
+                }
+              })}
 
               {Array.from(debrisFieldRef.current.values()).map((debris) => {
                 // console.log('debris', debris);
@@ -923,7 +944,7 @@ const Game = ({ socket }) => {
         {isDestroyed && <DestroyedOverlay />}
 
         <div className="HUD">
-          {localPlayer && localShields && (
+          {localPlayer && localShields && !isDestroyed && (
             <div className="HUD-wrapper-left">
               <HUD
                 player={{
@@ -953,6 +974,14 @@ const Game = ({ socket }) => {
                 }}
               />
             </div>
+          )}
+          {isDestroyed && (
+            <button
+              className="lobby-btn"
+              onClick={returnToLobby}
+            >
+              Back to Lobby
+            </button>
           )}
           {localTargetRef.current && playersPositionRef.current.has(localTargetRef.current) ? (
             <div className="HUD-wrapper-right">
